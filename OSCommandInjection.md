@@ -159,3 +159,19 @@ The application serves the images for the product catalog from this location. Yo
 <img width="1915" height="1126" alt="image" src="https://github.com/user-attachments/assets/a9f5994d-1988-4ed7-af93-97e17d7e3271" />
 
 Upon opening HTTP history (and turn off the filtering for images), so will see a handful amount of GET method from the folder `/images` with the parameter `?filename=....jpg` . These are the images we see in the shop. Since we have copied the output of the `whoami` command into the `whoami.txt` in this folder, we just send the GET method from the `/images` to the repeater and change the parameter to `?filename=whoami.txt` to retrieve the output.
+
+## Blind OS command injection with out-of-band interaction
+
+## Blind OS command injection with out-of-band data exfiltration
+
+## Epilogue: How to prevent OS command injection attacks?
+
+The most effective way to prevent OS command injection vulnerabilities is to never call out to OS commands from application-layer code. In almost all cases, there are different ways to implement the required functionality using safer platform APIs.
+
+If you have to call out to OS commands with user-supplied input, then you must perform strong input validation. Some examples of effective validation include:
+
+- Validating against a whitelist of permitted values.
+- Validating that the input is a number.
+- Validating that the input contains only alphanumeric characters, no other syntax or whitespace.
+
+Never attempt to sanitize input by escaping shell metacharacters. In practice, this is just too error-prone and vulnerable to being bypassed by a skilled attacker.
