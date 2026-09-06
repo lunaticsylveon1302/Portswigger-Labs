@@ -1,6 +1,8 @@
 ## Prologue: What is SQL injection (SQLi)?
 
-SQL injection (SQLi) is a web security vulnerability that allows an attacker to interfere with the queries that an application makes to its database.
+SQL injection (SQLi) is a web security vulnerability that allows an attacker to interfere with the queries that an application makes to its database. This can allow an attacker to view data that they are not normally able to retrieve. This might include data that belongs to other users, or any other data that the application can access. In many cases, an attacker can modify or delete this data, causing persistent changes to the application's content or behavior.
+
+In some situations, an attacker can escalate a SQL injection attack to compromise the underlying server or other back-end infrastructure. It can also enable them to perform denial-of-service attacks.
 
 Most SQL injection vulnerabilities occur within the `WHERE` clause of a `SELECT` query. However, SQL injection vulnerabilities can occur at any location within the query, and within different query types. Some other common locations where SQL injection arises are:
 
@@ -15,6 +17,15 @@ There are lots of SQL injection vulnerabilities, attacks, and techniques, that o
 - Subverting application logic, where you can change a query to interfere with the application's logic.
 - UNION attacks, where you can retrieve data from different database tables.
 - Blind SQL injection, where the results of a query you control are not returned in the application's responses.
+
+You can detect SQL injection manually using a systematic set of tests against every entry point in the application. To do this, you would typically submit:
+
+- The single quote character `'` and look for errors or other anomalies.
+- Some SQL-specific syntax that evaluates to the base (original) value of the entry point, and to a different value, and look for systematic differences in the application responses.
+- Boolean conditions such as OR 1=1 and OR 1=2, and look for differences in the application's responses.
+- Payloads designed to trigger time delays when executed within a SQL query, and look for differences in the time taken to respond.
+- OAST payloads designed to trigger an out-of-band network interaction when executed within a SQL query, and monitor any resulting interactions.
+- [SQLi Cheatsheet](https://portswigger.net/web-security/sql-injection/cheat-sheet)
 
 ## SQL injection vulnerability in WHERE clause allowing retrieval of hidden data
 
@@ -258,23 +269,55 @@ Similar to the last lab, but with Oracle rather than PostgreSQL:
 
 <img width="1918" height="1065" alt="image" src="https://github.com/user-attachments/assets/7e931c5a-c6e4-4743-bada-46ab0d3c2251" />
 
-'+UNION+SELECT+username_ukrtfk,+password_vorwlr+FROM+users_suirpx--
+`'+UNION+SELECT+username_ukrtfk,+password_vorwlr+FROM+users_suirpx--`
 
 <img width="1806" height="147" alt="image" src="https://github.com/user-attachments/assets/22568312-3d4d-4526-aff7-e87c935e0114" />
 
 ## SQL injection UNION attack, determining the number of columns returned by the query
 
+```
+This lab contains a SQL injection vulnerability in the product category filter. The results from the query are returned in the application's response, so you can use a UNION attack to retrieve data from other tables.
 
+The first step of such an attack is to determine the number of columns that are being returned by the query. You will then use this technique in subsequent labs to construct the full attack.
 
+To solve the lab, determine the number of columns returned by the query by performing a SQL injection UNION attack that returns an additional row containing null values.
+```
 
+Instead of using 'z' as before, we have to use NULL this time. Note that the SQLi UNION attack works if
+- The number and the order of the columns must be the same in all queries.
+- The data type is compatible.
 
+The SQLi UNION attack process can be described as follow:
+- SELECT ... FROM ... UNION SELECT NULL-- --> 500 Internal Service Error, means that the number of columns is still incorrect.
+- SELECT ... FROM ... UNION SELECT NULL, NULL, NULL-- --> 200 OK response, means that the number of columns is now correct.
 
+NULL is useful for testing because it is a neutral placeholder that databases can often treat as compatible with many column types. The query can now parse and execute, so the application may return 200 OK. The behavior is simply an column count oracle, in that a column count mismatch will return an error, while the matching column count will succeed the query.
 
+## SQL injection UNION attack, finding a column containing text
+```
+This lab contains a SQL injection vulnerability in the product category filter. The results from the query are returned in the application's response, so you can use a UNION attack to retrieve data from other tables. To construct such an attack, you first need to determine the number of columns returned by the query. You can do this using a technique you learned in a previous lab. The next step is to identify a column that is compatible with string data.
 
+The lab will provide a random value that you need to make appear within the query results. To solve the lab, perform a SQL injection UNION attack that returns an additional row containing the value provided. This technique helps you determine which columns are compatible with string data.
+```
+Using the query from the previous lab `'UNION SELECT NULL, NULL, NULL--`, we know that there are 3 columns. Substitute the 'phrase' into each NULL to figure out which column's data type is text (and solve the lab). 
 
+<img width="948" height="472" alt="image" src="https://github.com/user-attachments/assets/8980f2a1-7d4f-485c-a413-4393dd0b0105" />
 
+## SQL injection UNION attack, retrieving multiple values in a single column
 
+First, we implement a callback to **SQL injection UNION attack, determining the number of columns returned by the query**.
 
+<img width="959" height="536" alt="image" src="https://github.com/user-attachments/assets/e24436a6-b2ac-415b-b2fa-ea82a0e91f30" />
+
+After `' UNION SELECT NULL, NULL--`, the response is 200 OK, means that the query only has two columns this time. 
+
+Thereafter, I tried `' UNION SELECT username, password FROM users--`, but it did not work. In fact, this query is the same as **SQL injection UNION attack, retrieving data from other tables**. But this time we have a caveat, which is "retrieiving multiple values". I come up with a hypothesis, that we have already known the username ("administrator), so we do not need the field "username" this time (I guess they sanitize/blacklist this payload?) Anyhow, I've arrived at the correct answer: `' UNION SELECT NULL, password FROM users--`
+
+<img width="957" height="532" alt="image" src="https://github.com/user-attachments/assets/1e6b31b0-dbcd-4d47-a747-ac908fb029a9" />
+
+Try each string as the password with the username "administrator" and the first one works.
+
+## Blind SQL injection with conditional responses
 
 
 
