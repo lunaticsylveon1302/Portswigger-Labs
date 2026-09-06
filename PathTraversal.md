@@ -66,6 +66,7 @@ It is noteworthy that, the description is kinda deceptive here. The true workflo
 Let’s say that our exploit remains to be `../../../etc/passwd` . First we encode it one time to `..%2F..%2F..%2Fetc%2Fpasswd` . However, this will fail the security check as it will be decoded back to the path traversal sequence and will be blocked. We will then double encode it to `..%252F..%252F..%252Fetc%252Fpasswd` . This will not return the path traversal sequence immediately upon decoding once, thereby passing the security check.
 
 Various non-standard encodings, such as `..%c0%af` or `..%ef%bc%8f`, may also work.
+
 <img width="1918" height="1126" alt="image" src="https://github.com/user-attachments/assets/b9ddfa7e-0b93-4d2a-9f73-f49cf90f77a1" />
 
 ## File path traversal, validation of start of path
