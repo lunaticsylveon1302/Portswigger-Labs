@@ -1,5 +1,5 @@
-## What is Path Traversal?
-Path traversal is also known as directory traversal. These vulnerabilities enable an attacker to read arbitrary files on the server that is running an application.
+## Prologue: What is Path Traversal?
+Path traversal (also known as directory traversal) is a vulnerability that allows attackers to read or write sensitive files on a server by escaping the application's intended directory.
 
 ## File path traversal, simple case
 ```
