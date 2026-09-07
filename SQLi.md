@@ -372,9 +372,11 @@ To do this, start with the following input:
 
 *Syntax Explanation:*
 
-`SELECT password FROM users WHERE username = 'administrator'` retrieves that user’s password value (or password hash).
+- `SELECT password FROM users WHERE username = 'administrator'` retrieves that user’s password value (or password hash).
 
-`SUBSTRING(..., 1, 1)` extracts one character, starting at position 1: the first character.
+- `SUBSTRING(..., 1, 1)` extracts one character, starting at position 1: the first character. Note that the first parameter is the offset index (1-based), and the second parameter is the specified length.
+
+- Assuming that the application normally builds this query: `WHERE tracking_id = '<input>'` When we close the quote at the xyz, we (automatically) have an extra quote at the end of the query, so we do not need to close the m once more. 
 
 <img width="546" height="152" alt="image" src="https://github.com/user-attachments/assets/5bb36040-6e1f-451c-bbdc-d06e01f831ce" />
 
@@ -405,13 +407,51 @@ We can continue this process (with Burp Intruder) to systematically determine th
 
 The password ends up to be `q2l0xt7wumhvxgcmbbd6`.
 
-> [!NOTE]
-> *Syntax explanation*
-> <img width="326" height="35" alt="image" src="https://github.com/user-attachments/assets/f698fa78-4db6-4a78-99a9-3bdf86df8e40" />
->
-> 
-
 ## Blind SQL injection with conditional errors
+
+```
+This lab contains a blind SQL injection vulnerability. The application uses a tracking cookie for analytics, and performs a SQL query containing the value of the submitted cookie.
+
+The results of the SQL query are not returned, and the application does not respond any differently based on whether the query returns any rows. If the SQL query causes an error, then the application returns a custom error message.
+
+The database contains a different table called users, with columns called username and password. You need to exploit the blind SQL injection vulnerability to find out the password of the administrator user.
+
+To solve the lab, log in as the administrator user.
+```
+
+Some applications carry out SQL queries but their behavior doesn't change, regardless of whether the query returns any data. The technique in the previous section won't work, because injecting different boolean conditions makes no difference to the application's responses.
+
+It's often possible to induce the application to return a different response depending on whether a SQL error occurs. You can modify the query so that it causes a database error only if the condition is true. Very often, an unhandled error thrown by the database causes some difference in the application's response, such as an error message. This enables you to infer the truth of the injected condition.
+
+To exemplify, let's inspect two requests are sent containing the following TrackingId cookie values:
+
+`xyz' AND (SELECT CASE WHEN (1=2) THEN 1/0 ELSE 'a' END)='a`
+
+The completed SQL becomes:
+```
+WHERE tracking_id = 'xyz'
+  AND (
+    SELECT CASE
+      WHEN (1=2) THEN 1/0
+      ELSE 'a'
+    END
+  ) = 'a'
+```
+> [!NOTE]
+> The SQL CASE expression is SQL's way of handling IF-THEN-ELSE conditional logic inside a query. It evaluates conditions sequentially and returns a specific value as soon as the first true condition is met. 
+
+As 1 is not equal to 2, the SQL query returns 'a', and as 'a' = 'a', so the result becomes True.
+
+`xyz' AND (SELECT CASE WHEN (1=1) THEN 1/0 ELSE 'a' END)='a`
+
+As 1 is equal to 1, the SQL query returns 1/0, which is is intentionally dangerous: division by zero normally causes a database error.
+
+Therefore, if the error causes a difference in the application's HTTP response, you can use this to determine whether the injected condition is true.
+
+
+
+
+
 
 
 
