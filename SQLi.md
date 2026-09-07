@@ -448,6 +448,7 @@ As 1 is equal to 1, the SQL query returns 1/0, which is is intentionally dangero
 
 Therefore, if the error causes a difference in the application's HTTP response, you can use this to determine whether the injected condition is true.
 
+At first, I tried around `' AND (SELECT CASE WHEN (username = 'administrator' AND SUBSTR((SELECT password WHERE username = 'administrator'), 1, 1) = 'a') THEN 1/0 ELSE 'a' FROM users) = 'a`, yet it failed. Then I open the hint and gain the information that this lab use an Oracle database. 
 
 
 
