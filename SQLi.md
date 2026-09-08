@@ -448,13 +448,16 @@ As 1 is equal to 1, the SQL query returns 1/0, which is is intentionally dangero
 
 Therefore, if the error causes a difference in the application's HTTP response, you can use this to determine whether the injected condition is true.
 
-At first, I tried around `' AND (SELECT CASE WHEN (username = 'administrator' AND SUBSTR((SELECT password WHERE username = 'administrator'), 1, 1) = 'a') THEN 1/0 ELSE 'a' FROM users) = 'a`, yet it failed. Then I open the hint and gain the information that this lab use an Oracle database. 
+Applying my logic from the previous lab, I tried:
 
+`' AND (SELECT CASE WHEN (username = 'administrator' AND SUBSTR((SELECT password WHERE username = 'administrator'), 1, 1) = 'a') THEN 1/0 ELSE 'a' FROM users) = 'a`
 
+It failed, however. Then I open the hint and gain the information that this lab use an Oracle database. Then I tried again (and failed again):
 
+`' AND (SELECT CASE WHEN (username = 'administrator' AND SUBSTR((SELECT password FROM users WHERE username = 'administrator'), 1, 1) = 'a') THEN TO_CHAR(1/0) ELSE NULL END FROM dual`
 
-
-
-
-
-
+Both of them failed for these reasons:
+- `AND (SELECT CASE ...)` is not a valid Oracle Boolean predicate: the subquery returns a text value or NULL, not a condition Oracle can use after AND.
+- Oracle string-concatenation structure is `xyz'||(SELECT ... )||'` rather than `xyz' AND (SELECT ... )`.
+- FROM dual means the outer query has no users.username column, so username = 'administrator' is an invalid identifier there.
+- END closes only the CASE expression, not the whole SELECT query. Therefore the FROM and WHERE clause are placed after END.
