@@ -461,3 +461,28 @@ Both of them failed for these reasons:
 - Oracle string-concatenation structure is `xyz'||(SELECT ... )||'` rather than `xyz' AND (SELECT ... )`.
 - FROM dual means the outer query has no users.username column, so username = 'administrator' is an invalid identifier there.
 - END closes only the CASE expression, not the whole SELECT query. Therefore the FROM and WHERE clause are placed after END.
+
+Anyhow, let's start from square one and analyze in a more hawk-eyed manner:
+
+- First, try to append a single quotation mark to the `TrackingId` cookie, making it `TrackingId'`:
+
+<img width="959" height="562" alt="image" src="https://github.com/user-attachments/assets/7a254d11-cf08-4d2f-b735-1db145f16b9a" />
+
+- We get Internal Service Error. Let's now close the quotation mark this time around with `TrackingId''`:
+
+<img width="959" height="564" alt="image" src="https://github.com/user-attachments/assets/664e4b8a-7852-41de-9741-2f31590a471d" />
+
+*The error disappeared, but why does a quotation mark could invoke such an error?*
+
+> [!NOTE]
+> A vulnerable application may build SQL like: `WHERE TrackingId = '<cookie value>'`
+>
+> With the cookie abcxyz, the query is simply `WHERE TrackingId = 'abcxyz'`
+>
+> However, appending a quotation mark returns `WHERE TrackingId = 'xyz''`
+>
+> In SQL, two adjacent quotes inside a string ('') mean “a literal apostrophe.” Therefore, those final two quotes are consumed as an escaped ', leaving the original opening quote with no closing quote. The database raises a syntax error.
+>
+> With two quotes in the cookie: `WHERE TrackingId = 'xyz'''`, the SQL string is now closed properly.
+
+*Why does the 
