@@ -485,4 +485,7 @@ Anyhow, let's start from square one and analyze in a more hawk-eyed manner:
 >
 > With two quotes in the cookie: `WHERE TrackingId = 'xyz'''`, the SQL string is now closed properly.
 
-*Why does the 
+*The differentiation of concatenation method*
+
+> [!NOTE]
+> 
