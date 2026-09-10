@@ -488,4 +488,5 @@ Anyhow, let's start from square one and analyze in a more hawk-eyed manner:
 *The differentiation of concatenation method*
 
 > [!NOTE]
+>
 > 
