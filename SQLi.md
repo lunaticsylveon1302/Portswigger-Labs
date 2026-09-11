@@ -70,6 +70,12 @@ The modified query returns all items where either the `category` is `Gifts`, 
 
 As a caveat, take care when injecting the condition `OR 1=1` into a SQL query. Even if it appears to be harmless in the context you're injecting into, it's common for applications to use data from a single request in multiple different queries. If your condition reaches an `UPDATE` or `DELETE` statement, for example, it can result in an accidental loss of data.
 
+> [!NOTE]
+>
+> An Internal Server Error upon appending `'` can be an indication of a SQLi vulnerability.
+>
+> *And I still wonder about Gifts'--*
+
 ## SQL injection vulnerability allowing login bypass
 ```
 This lab contains a SQL injection vulnerability in the login function.
@@ -489,4 +495,45 @@ Anyhow, let's start from square one and analyze in a more hawk-eyed manner:
 
 > [!NOTE]
 >
+> `+` are URL-encoded spaces
 > 
+> `||` are string concatenation in Oracle SQL
+>
+> <img width="348" height="154" alt="image" src="https://github.com/user-attachments/assets/be7068b3-ffb7-4126-955e-15ef6210c81b" />
+>
+> In previous labs, we are manipulating the URL query parameter, so the intended SQL-like input is sent in such a URL form that need such a URL space. The server decodes that first, then the vulnerable application inserts the decoded value into SQL. A cookie header is not normally decoded using URL-form rules, so `+` would not mean a space there. The raw quote and `||` are sent as part of the cookie value, and as the SQLi.
+
+*Oracle SQL query vulnerability recon*
+
+> [!NOTE]
+> Without the hint, we can still identify which type of database this lab is using via creating a harmless string expression while forcing the database to evaluate a scalar SELECT, such as:
+> 
+> - Oracle: `'xyz' || (SELECT '' FROM dual) || ''`
+> - PostgreSQL: `'xyz' || (SELECT '') || ''`
+> - Microsoft: `'xyz' + (SELECT '') + ''`
+> - MySQL: `CONCAT('xyz', (SELECT ''), '')`
+>
+> Whichever responses normally indicates the correct type of database, while other would return Internal Server Error. The `FROM dual` test being successful is evidence that the backend is probably Oracle.
+>
+> Moreover, `TrackingId=xyz'||(SELECT '' FROM not-a-real-table)||'` return an error, strongly suggest that the injection is being processed as a SQL query by the back-end.
+>
+> This feature facilitates a very clever exploitation: As long as you make sure to always inject syntactically valid SQL queries, you can use this error response to infer key information about the database. For example: 
+>
+> `TrackingId=xyz'||(SELECT '' FROM users WHERE ROWNUM = 1)||'`
+>
+> The application may (likely) read it (nonverbatim) as: `SELECT TrackingId FROM TrackedUsers WHERE TrackingId = 'xyz' || (SELECT '' FROM users WHERE ROWNUM = 1) || ''`, wherein:
+>
+> - `SELECT ''` returns an empty value; Oracle treats `''` as `NULL`.
+> - `FROM users` forces Oracle to access the `users` table.
+> - `WHERE ROWNUM = 1` limits the subquery to at most one row.
+> - `||` joins the result into the existing string expression.
+> 
+> As this query does not return an error, you can infer that this table does exist.
+>
+> Note that the WHERE ROWNUM = 1 condition is important here to prevent the query from returning more than one row, which would break our concatenation. This is a scalar subquery, it must return one value, not many rows. Without that restriction, multiple user rows would cause Oracle’s “single-row subquery returns more than one row” error.
+
+
+
+
+
+
